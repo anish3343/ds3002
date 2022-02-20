@@ -334,3 +334,10 @@ ON `northwind`.`order_details`.`status_id` = `northwind`.`order_details_status`.
 # PART 3: DIMENSIONAL REPORT
 #-------------------------------------------------------------------------------------------
 
+SELECT `dim_customers`.`last_name` AS `customer_name`,
+	SUM(`fact_orders`.`quantity`) AS `total_quantity`,
+    SUM(`fact_orders`.`unit_price`) AS `total_unit_price`
+FROM `northwind_dw`.`fact_orders`
+LEFT JOIN `northwind_dw`.`dim_customers`
+ON `dim_customers`.`customer_key` = `fact_orders`.`customer_id`
+GROUP BY `dim_customers`.`last_name`;
