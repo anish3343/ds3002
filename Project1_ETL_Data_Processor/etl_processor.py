@@ -40,8 +40,8 @@ def extract():
         else:
             print("ERROR: '" + input_type + "' is not a recognized file format. Please try again with either 'CSV' or 'JSON'.")
             quit()
-    except:
-        print('ERROR: Something went wrong while trying to read "' + source + '" as a', input_type, "file. Check the dataset and/or filetype and try again.")
+    except Exception as e:
+        print('ERROR: Something went wrong while trying to read "' + source + '" as a', input_type, "file. Check the dataset and/or filetype and try again. Error:", e)
         quit()
 
     # Generate a summary string
@@ -59,18 +59,25 @@ def transform(data):
     # Get desired action from user
     action = input("Please indicate whether you want to add or remove a column (One of 'Add', '+', 'Remove', or '-', case insensitive): ").upper()
 
+    # Construct summary string
+    summary = "Transformation: "
+
     try:
         if action in ['ADD','+']:
             display_cols(data)
             index = int(input('At which index do you want to add a new column? (A number between 0 and ' + str(len(data.columns)) + ', both inclusive)'))
-            print('adding')
+            col_name = input('What should the new column be called?')
+            data.insert(index, col_name)
+            summary = summary + "Added column '" + col_name + "' at index " + str(index)
         elif action in ['REMOVE','-']:
             display_cols(data)
-            print('removing')
+            index = int(input('At which index do you want to remove a column? (A number between 0 and ' + str(len(data.columns)-1) + ', both inclusive)'))
+            data.drop(data.columns[index], axis=1)
+            summary = summary + "Removed column '" + col_name + "' at index " + str(index)
         else:
             print("ERROR: '" + action + "' is not a recognized action. Please try again with either 'Add', '+', 'Remove', or '-'.")
-    except:
-        print('ERROR: Something went wrong while trying to add/remove a column. Check the dataset and/or filetype and try again.')
+    except Exception as e:
+        print('ERROR: Something went wrong while trying to add/remove a column. Check the dataset and/or filetype and try again. Error:', e)
         quit()
 
     # Print a message indicating end of transformation
