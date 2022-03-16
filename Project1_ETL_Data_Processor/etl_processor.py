@@ -4,6 +4,7 @@ DS 3002: Data Science Systems
 Data Project 1: ETL Data Processor
 """
 
+import numpy as np
 import pandas as pd
 
 
@@ -14,20 +15,23 @@ def processor():
     data, input_summary = extract()
 
     # Transform the data
-    transformed_data = transform(data)
+    transformed_data, transform_summary = transform(data)
+
+    # Load the data into the destination
+    load_summary = load(transformed_data)
 
     # Generate and print a summary
-    summary = "SUMMARY:\n" + input_summary
+    summary = "\nSUMMARY:\n" + input_summary + transform_summary + load_summary
     print(summary)
 
 def extract():
-    """ Gets data from user-entered source and returns it as a DataFrame """
+    """ Gets CSV or JSON data from user-entered source and returns it as a DataFrame """
 
     # Get filetype
     input_type = input("Enter the source file format (One of 'CSV' or 'JSON', case insensitive): ").upper()
 
     # Get data source
-    source = input("Enter a data source, this could be a local file or a URL: ")
+    source = input("Enter a " + input_type + " data source, this could be a local file or a URL: ")
 
     # Get data from the source
     data = pd.DataFrame() # an empty DataFrame to set variable scope
@@ -40,12 +44,15 @@ def extract():
         else:
             print("ERROR: '" + input_type + "' is not a recognized file format. Please try again with either 'CSV' or 'JSON'.")
             quit()
+    except FileNotFoundError:
+        print("ERROR: No file was found at", source + '. Please double check the data source and try again.')
+        quit()
     except Exception as e:
-        print('ERROR: Something went wrong while trying to read "' + source + '" as a', input_type, "file. Check the dataset and/or filetype and try again. Error:", e)
+        print('ERROR: Something went wrong while trying to read "' + source + '" as a', input_type, "file. Check the dataset and/or filetype and try again.\nType of error:", e)
         quit()
 
     # Generate a summary string
-    input_summary = 'Input: ' + input_type + ' file with ' + str(len(data)) + ' records and ' + str(len(data.columns)) + ' columns'
+    input_summary = 'Input: ' + input_type + ' file with ' + str(len(data)) + ' records and ' + str(len(data.columns)) + ' columns from ' + source + 'read as a DataFrame.\n'
 
     # Print a message indicating end of extraction
     print("Finished extracting data.\n")
@@ -65,26 +72,64 @@ def transform(data):
     try:
         if action in ['ADD','+']:
             display_cols(data)
-            index = int(input('At which index do you want to add a new column? (A number between 0 and ' + str(len(data.columns)) + ', both inclusive)'))
-            col_name = input('What should the new column be called?')
-            data.insert(index, col_name)
+            index = int(input('At which index do you want to add a new column? (A number between 0 and ' + str(len(data.columns)) + ', both inclusive): '))
+            if index < 0 or index > len(data.columns):
+                raise ValueError('value out of bounds: index ' + str(index) + ' is not between 0 and ' + str(len(data.columns)))
+            col_name = input('What should the new column be called? ')
+            data.insert(index, col_name, np.nan)
             summary = summary + "Added column '" + col_name + "' at index " + str(index)
         elif action in ['REMOVE','-']:
             display_cols(data)
-            index = int(input('At which index do you want to remove a column? (A number between 0 and ' + str(len(data.columns)-1) + ', both inclusive)'))
-            data.drop(data.columns[index], axis=1)
+            index = int(input('At which index do you want to remove a column? (A number between 0 and ' + str(len(data.columns)-1) + ', both inclusive): '))
+            if index < 0 or index > (len(data.columns)-1):
+                raise ValueError('value out of bounds: index ' + str(index) + ' is not between 0 and ' + str(len(data.columns)-1))
+            col_name = data.columns[index]
+            data.drop(col_name, axis=1, inplace=True)
             summary = summary + "Removed column '" + col_name + "' at index " + str(index)
         else:
             print("ERROR: '" + action + "' is not a recognized action. Please try again with either 'Add', '+', 'Remove', or '-'.")
+    except ValueError as e:
+        print('ERROR: You did not enter a valid number. Please check your inputs and try again.\nType of error:', e)
+        quit()
     except Exception as e:
-        print('ERROR: Something went wrong while trying to add/remove a column. Check the dataset and/or filetype and try again. Error:', e)
+        print('ERROR: Something went wrong while trying to add/remove a column. Check the dataset and/or filetype and try again.\nType of error:', e)
         quit()
 
     # Print a message indicating end of transformation
     print("Finished transforming data.\n")
 
-    return
+    # Format the summary string and return it along with the data
+    summary = summary + '.\n'
+    return data, summary
     
+def load(data):
+    """ loads data into a CSV, JSON or SQL file per user choice. """
+
+    # Get output filetype from user
+    input_type = input("Enter the destination file format (One of 'CSV' or 'JSON', case insensitive): ").upper()
+
+    # Get destination
+    destination = input("Enter a filename for your " + input_type + " file WITHOUT any extensions: ")
+
+    try:
+        if input_type == 'CSV':
+            destination = destination + '.csv'
+            data.to_csv(destination)
+        elif input_type == 'JSON':
+            destination = destination + '.json'
+            data.to_json(destination)
+        else:
+            print("ERROR: '" + input_type + "' is not a recognized file format. Please try again with either 'CSV' or 'JSON'.")
+            quit()
+    except Exception as e:
+        print('ERROR: Something went wrong while trying to write a ' + input_type + ' file to "', destination, "\"file. Check the dataset and/or filetype and try again.\nType of error:", e)
+        quit()
+
+    # Construct summary string
+    summary = "Output: DataFrame with " + str(len(data)) + ' records and ' + str(len(data.columns)) + ' columns written to ' + destination + '.\n'
+    
+    return summary
+
 """
 BEGIN HELPER METHODS
 """
@@ -101,10 +146,12 @@ def display_cols(data):
         print(i, "\t" + col)
         i += 1
 
-    print('\n')
+    print()
 
 if __name__ == "__main__":
     try:
         processor()
     except KeyboardInterrupt:
         print("\nProcess aborted by Keyboard Interrupt (Ctrl-C).")
+    except Exception as e:
+        print("ERROR: Something went wrong.\nType of error: ", e)
