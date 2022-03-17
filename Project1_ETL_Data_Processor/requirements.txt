@@ -1,3 +1,7 @@
 # pip requirements file
 
+# pandas for using DataFrames
 pandas
+
+# SQLAlchemy for writing to SQLite
+sqlalchemy
