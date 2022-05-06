@@ -1,0 +1,4 @@
+# pip requirements file
+
+# Discord API client
+discord.py
