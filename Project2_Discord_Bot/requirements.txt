@@ -2,3 +2,6 @@
 
 # Discord API client
 discord.py
+
+# dotenv to parse environment var file
+python-dotenv
