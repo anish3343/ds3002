@@ -1,0 +1,5 @@
+# environment variable file
+.env
+
+# python virtual environment
+env/
