@@ -33,7 +33,7 @@ pip install -r requirements.txt
 ```
 2. Run the bot:
 ```
-pip install -r requirements.txt
+python3 main.py
 ```
 
 ### Run from replit (recommended)
