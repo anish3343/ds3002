@@ -1,9 +1,11 @@
+import asyncio
 import discord
 import os
 from dotenv import load_dotenv
-import geograpy
+from flashgeotext.geotext import GeoText
 import requests
 import datetime
+import re
 
 load_dotenv('.env')
 
@@ -11,6 +13,8 @@ client = discord.Client()
 
 @client.event
 async def on_ready():
+    activity = discord.Game(name="type !help for help")
+    await client.change_presence(activity=activity)
     print('Logged into {1} as {0.user}'.format(client, "XXXSERVER"))
 
 @client.event
@@ -23,20 +27,30 @@ async def on_message(message):
     if content.startswith('HELLO'):
         await message.channel.send('Hello!')
 
-    if content.startswith('$HELP'):
-        help_string = 'Hello! Thanks for using DS3002-Helper-Bot! Here\'s some things I can do:\n- To get the current weather at a location, include the word "weather" and the location you want weather for (defaults to Charlottesville, VA if no location specified).\n- To get the weather forecast for the next 7 days, include the word "weather", location (defaults to Charlottesville, VA) and something like "tomorrow", "forecast" or "next Monday/Tuesday/..." in your message.'
+    if content.startswith('!HELP'):
+        help_string = 'Hello! Thanks for using DS3002-Helper-Bot! Here\'s some things I can do:\n- To get the current weather at a location, include the word "weather" and one or more locations you want weather for (defaults to Charlottesville, VA if no location specified).\n- To get the weather forecast for the next 7 days, include the word "weather", location(s) (defaults to Charlottesville, VA) and something like "tomorrow", "forecast" or "next Monday/Tuesday/..." in your message.\n- To get the current stock price of a company, include the word "stock" and one or more company tickers preceded by a $ and a space before any punctuation. For example: "What\'s the stock price for $aapl $ba and $msft ?"'
         await message.channel.send(help_string)
 
     # Get weather
     if 'WEATHER' in content:
         # Look for city names
-        places = geograpy.get_geoPlace_context(text=content.title())
+        geotext = GeoText()
+        places = geotext.extract(input_text=content.title())
         # If no city was found, default to Charlottesville
-        if not places.cities:
-            await message.channel.send("Hmm. Either you didn't specify a city, or I couldn't find the city you entered.")
-            places = geograpy.get_geoPlace_context(text="Charlottesville")
+        if places['cities'] == {}:
+            await message.channel.send("Hmm. Either you didn't specify a city, or I couldn't find the city you entered. Please enter the city name again:")
+            try:
+                reply_message = await client.wait_for('message', timeout=15.0)
+            except asyncio.TimeoutError:
+                await message.channel.send('Timed out.')
+                places = geotext.extract(input_text="Charlottesville")
+            else:
+                places = places = geotext.extract(input_text=reply_message.content.title())
+                if places['cities'] == {}:
+                    await message.channel.send('Sorry, I still couldn\'t find the city you were looking for.')
+                    places = places = geotext.extract(input_text="Charlottesville")
         # Get the weather at each city
-        for city in places.cities:
+        for city in places['cities'].keys():
             # Make a call to the geolocation API with the city name
             city_query_string = "http://api.openweathermap.org/geo/1.0/direct?q=" + city + "&appid=" + os.environ['WEATHER']
             # Load the response into an object
@@ -87,6 +101,34 @@ async def on_message(message):
 
     # Get stocks
     if 'STOCK' in content:
-        await message.channel.send("Here's the stocks you requested:")
+        # Regular expression that matches all tickers
+        stock_regex = r'[$][A-Z][\S]*'
+        # Find all matching strings
+        raw_tickers = re.findall(stock_regex, content)
+        # If we found any, get their stock price
+        if raw_tickers:
+            # Query string
+            tickers = ""
+            # Convert the list of tickers into a comma-separated string and strip the $
+            for ticker in raw_tickers:
+                tickers += "," + ticker[1:]
+            # Strip the leading comma
+            tickers = tickers[1:]
+            # Assemble API Call
+            url = "https://yfapi.net/v6/finance/quote"  # Yahoo Finance API url
+            querystring = {"symbols":tickers}   # List of tickers that the user wants to query
+            headers = {'x-api-key': os.environ['FINANCE']} # My API key
+
+            response = requests.request("GET", url, headers=headers, params=querystring)
+
+            stock_json = response.json()
+
+            response_message = ""
+            response_message += "Here's the stocks you requested:\n"
+            for ticker in stock_json['quoteResponse']['result']:
+                response_message += ticker['longName'] + ': $' + str(ticker['regularMarketPrice']) + '\n'
+            await message.channel.send(response_message)
+        else:
+            await message.channel.send("Sorry, I wasn't able to find any tickers in your message. Please make sure it is formatted correctly:\nInclude the word \"stock\" and one or more company tickers preceded by a $ and a space before any punctuation. For example: \"What\'s the stock price for $aapl $ba and $msft ?\"")
 
 client.run(os.getenv('TOKEN'))

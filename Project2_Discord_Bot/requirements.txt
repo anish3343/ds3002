@@ -6,8 +6,8 @@ discord.py
 # dotenv to parse environment var file
 python-dotenv
 
-# geograpy3 for city names
-geograpy3
+# flashgeotext for city names
+flashgeotext
 
 # to make API calls
 requests
