@@ -4,7 +4,7 @@ A script to ingest data from an API periodically and analyze it.
 
 ## What it does
 
-This script calls the [provided API]() exactly once every minute for 60 minutes, starting at the top of the next hour. It places each API response into a table in a local SQLite database (which will be created if it does not exist).
+This script calls the [provided API](https://4feaquhyai.execute-api.us-east-1.amazonaws.com/api/pi) exactly once every minute for 60 minutes, starting at the top of the next hour. It places each API response into a table in a local SQLite database (which will be created if it does not exist).
 
 ## Installation
 
@@ -23,7 +23,7 @@ You may need to manually kill the script with a `KeyboardInterrupt` (`Ctrl-C` or
 
 ## How it works
 
-The script makes use of the [schedule]() package to start the API calls at the top of the hour and subsequently run an API request exactly once a minute. It uses [SQLAlchemy]() to create the database table if it does not exist, and clears the table if it already exists. It inserts a row into this table every minute.
+The script makes use of the [schedule](https://schedule.readthedocs.io/en/stable/) package to start the API calls at the top of the hour and subsequently run an API request exactly once a minute. It uses [SQLAlchemy](https://www.sqlalchemy.org/) to create the database table if it does not exist, and clears the table if it already exists. It inserts a row into this table every minute.
 
 ## Output
 
