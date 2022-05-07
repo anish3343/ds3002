@@ -41,7 +41,7 @@ def main():
         return
 
 # Start running at the top of the hour
-schedule.every().hour.at("59:59").do(main)
+schedule.every().hour.at("59:50").do(main)
 print("Time until start of job: ", (int(schedule.idle_seconds()/60)) , " minutes ", ((int(schedule.idle_seconds()))%60), " seconds")
 while True:
     schedule.run_pending()
