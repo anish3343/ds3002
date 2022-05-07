@@ -2,3 +2,9 @@
 
 # schedule for running every minute
 schedule
+
+# for doing API calls
+requests
+
+# sqlite engine
+sqlalchemy
