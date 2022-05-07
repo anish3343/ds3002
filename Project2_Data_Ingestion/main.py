@@ -35,7 +35,7 @@ def job():
 def main():
     global count
     # Schedule the job to run every minute at :00
-    schedule.every().minute.at(":00").do(job)
+    schedule.every().minute.at(":30").do(job)
     if count >= 60:
         schedule.clear()
         return
